@@ -178,6 +178,8 @@ long LinuxParser::UpTime()
 
 /*
  * Helper to read and return the number of jiffies for the system
+ * https://supportcenter.checkpoint.com/supportcenter/portal?eventSubmit_doGoviewsolutiondetails=&solutionid=sk65143
+ * https://stackoverflow.com/questions/3017162/how-to-get-total-cpu-usage-in-linux-using-c
 */
 long LinuxParser::Jiffies()
 {
@@ -186,7 +188,7 @@ long LinuxParser::Jiffies()
     long allJiffies = 0;
     long columnUser= 0, columnNice =0,columnSystem=0,columnIdle=0, columnIOwait=0,
             columnIRQ=0, columnSoftIRQ=0, colmunSteal=0,columnGuest=0, columnGuestNice=0;
-    //float res;
+
     std::ifstream filestream(kProcDirectory + kStatFilename);
     try
     {
@@ -220,6 +222,8 @@ long LinuxParser::Jiffies()
 
 /*
  * Helper to read and return the number of active jiffies for a PID
+ * https://supportcenter.checkpoint.com/supportcenter/portal?eventSubmit_doGoviewsolutiondetails=&solutionid=sk65143
+ * https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat
 */
 long LinuxParser::ActiveJiffies(int pid)
 {
@@ -260,6 +264,7 @@ long LinuxParser::ActiveJiffies(int pid)
 
 /*
 * Helper to read and return the number of active jiffies for the system
+* https://supportcenter.checkpoint.com/supportcenter/portal?eventSubmit_doGoviewsolutiondetails=&solutionid=sk65143
 */
 long LinuxParser::ActiveJiffies()
 {
