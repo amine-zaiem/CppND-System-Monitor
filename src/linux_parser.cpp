@@ -34,13 +34,22 @@ string LinuxParser::OperatingSystem() {
                 std::replace(line.begin(), line.end(), '"', ' ');
                 std::istringstream linestream(line);
                 while (linestream >> key >> value) {
-                    if (key == "PRETTY_NAME") {
-                        std::replace(value.begin(), value.end(), '_', ' ');
-                        return value;
+                    if (key == "PRETTY_NAME")
+                    {
+                      if ( value.length() > 0)
+                      {
+                         std::replace(value.begin(), value.end(), '_', ' ');
+                      }
+                      else
+                      {
+                         value = default_os;
+                      }
+                      return value;
                     }
                 }
             }
         }
+        filestream.close();
     }
     catch (std::exception &e)
     {
@@ -64,6 +73,7 @@ string LinuxParser::Kernel() {
             std::istringstream linestream(line);
             linestream >> os >> version >> kernel;
         }
+        stream.close();
     }
     catch (std::exception &e)
     {
@@ -139,11 +149,12 @@ float LinuxParser::MemoryUtilization()
 
         usedMem = memTotal - memFree - buffer - cachedMem;
         memUtiliz = (float)usedMem / float(memTotal);
+        filestream.close();
     }
     catch (std::exception &e)
     {
 
-    	std::cerr<<"Error :  unknown exception, "<<e.what()<<std::endl;
+       std::cerr<<"Error :  unknown exception, "<<e.what()<<std::endl;
 
     }
     return memUtiliz;
@@ -165,6 +176,7 @@ long LinuxParser::UpTime()
             std::istringstream linestream(line);
             linestream >> upTime;
         }
+        stream.close();
     }
     catch (std::exception &e)
     {
@@ -183,33 +195,18 @@ long LinuxParser::UpTime()
 */
 long LinuxParser::Jiffies()
 {
-    string line;
-    string key;
     long allJiffies = 0;
-    long columnUser= 0, columnNice =0,columnSystem=0,columnIdle=0, columnIOwait=0,
-            columnIRQ=0, columnSoftIRQ=0, colmunSteal=0,columnGuest=0, columnGuestNice=0;
+    std::vector<std::string> jiffiesList = CpuUtilization();
+
 
     std::ifstream filestream(kProcDirectory + kStatFilename);
     try
     {
-        if (filestream.is_open())
-        {
-            while (std::getline(filestream, line))
-            {
-                std::istringstream linestream(line);
-                while (linestream >> key >> columnUser >> columnNice >> columnSystem
-                        >> columnIdle >> columnIOwait >> columnIRQ >> columnSoftIRQ >> colmunSteal
-                        >> columnGuest >> columnGuestNice) {
-                    if (key == "cpu")
-                    {
+       for ( auto item : jiffiesList )
+       {
+          allJiffies = allJiffies + std::stol(item);
+       }
 
-                        allJiffies = columnUser + columnSystem + columnSoftIRQ +
-                                columnNice + columnIdle + columnIRQ + columnIOwait +
-                                columnGuestNice + columnGuest + colmunSteal;
-                    }
-                }
-            }
-        }
     }
     catch (std::exception &e)
     {
@@ -230,15 +227,15 @@ long LinuxParser::ActiveJiffies(int pid)
 
     long activeJiffies = 0;
     //vector<long> statsList; --> To ask the mentor why it doesn't work this way
-    vector<std::string> statsList;
-    std::string line;
-    std::string item;
+    vector<string> statsList;
+    string line;
+    string item;
     const long HZ = sysconf(_SC_CLK_TCK);
     //long /*item=0,*/;
 
     try
     {
-        std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatFilename);
+        std::ifstream filestream(kProcDirectory + to_string(pid) + kStatFilename);
         if (filestream.is_open())
         {
             std::getline(filestream, line);
@@ -249,8 +246,9 @@ long LinuxParser::ActiveJiffies(int pid)
                 statsList.push_back(item);
             }
         }
-        activeJiffies = ( std::stol(statsList[13]) + std::stol(statsList[14]) /*+
-                std::stol(statsList[15]) + std::stol(statsList[16])*/ )/HZ;
+        activeJiffies = ( std::stol(statsList[13]) + std::stol(statsList[14]) +
+                std::stol(statsList[15]) + std::stol(statsList[16]) )/HZ;
+        filestream.close();
     }
     catch (std::exception &e)
     {
@@ -283,30 +281,13 @@ long LinuxParser::ActiveJiffies()
 */
 long LinuxParser::IdleJiffies()
 {
-    string line;
-    string key;
     long idleJiffies = 0;
-    long columnUser= 0, columnNice =0,columnSystem=0,columnIdle=0, columnIoWait=0;
 
+    std::vector<std::string> listOfJiffies = CpuUtilization();
     try
     {
-        std::ifstream filestream(kProcDirectory + kStatFilename);
-        if (filestream.is_open())
-        {
-            while (std::getline(filestream, line))
-            {
-                std::istringstream linestream(line);
-                while (linestream >> key >> columnUser >> columnNice >> columnSystem
-                        >> columnIdle >>  columnIoWait)
-                {
-                    if (key == "cpu")
-                    {
-
-                        idleJiffies = columnIdle + columnIoWait;
-                    }
-                }
-            }
-        }
+       idleJiffies = std::stol(listOfJiffies[CPUStates::kIdle_])
+                               + std::stol(listOfJiffies[CPUStates::kIOwait_]);
     }
     catch (std::exception &e)
     {
@@ -320,11 +301,29 @@ long LinuxParser::IdleJiffies()
 /*
  * Helper to read and return CPU utilization
 */
-vector<string> LinuxParser::CpuUtilization()// Don't know what to do here and
-// where to be used --> ask the mentor
+std::vector<std::string> LinuxParser::CpuUtilization()
 {
-    return {};
+    string value;
+    string line;
+    string key;
+    vector<string> listOfJiffies;
+
+    std::ifstream filestream(kProcDirectory + kStatFilename);
+    if (filestream.is_open()) {
+        std::getline(filestream, line);
+        std::istringstream linestream(line);
+        while (linestream >> key)
+        {
+            if (key != "cpu")
+            {
+                listOfJiffies.push_back(key);
+            }
+        }
+    }
+    filestream.close();
+    return listOfJiffies;
 }
+
 
 /*
  * Helper to read and return the total number of processes
@@ -361,7 +360,7 @@ string LinuxParser::Command(int pid)
 
     try
     {
-        std::ifstream filestream(kProcDirectory + std::to_string(pid).c_str() + kCmdlineFilename);
+        std::ifstream filestream(kProcDirectory + to_string(pid).c_str() + kCmdlineFilename);
         if (filestream.is_open())
         {
             while (std::getline(filestream, line))
@@ -369,6 +368,7 @@ string LinuxParser::Command(int pid)
                 cmdLine = line;
             }
         }
+        filestream.close();
     }
     catch (std::exception &e)
     {
@@ -390,9 +390,10 @@ long LinuxParser::Ram(int pid)
     long value;
     int memutilization = 0;
 
-    std::string filePath = kProcDirectory + std::to_string(pid).c_str() + kStatusFilename;
+    // i have used VmData insted of VmSize
+    string filePath = kProcDirectory + to_string(pid).c_str() + kStatusFilename;
     memutilization =
-            GetValue<long>( filePath, "VmSize:", value)/1024;
+            GetValue<long>( filePath, "VmData:", value)/1024;
     return memutilization;
 }
 
@@ -401,11 +402,11 @@ long LinuxParser::Ram(int pid)
 */
 string LinuxParser::Uid(int pid)
 {
-    string value, uid;
+    string value;
+    string uid;
 
-    std::string filePath = kProcDirectory + std::to_string(pid).c_str() + kStatusFilename;
-    uid =
-            GetValue<std::string>( filePath, "Uid:", value);
+    string filePath = kProcDirectory + to_string(pid).c_str() + kStatusFilename;
+    uid = GetValue<string>( filePath, "Uid:", value);
     return uid;
 }
 
@@ -415,9 +416,9 @@ string LinuxParser::Uid(int pid)
 //   https://www.cyberciti.biz/faq/understanding-etcpasswd-file-format/
 string LinuxParser::User(int pid)
 {
-    std::string uid = LinuxParser::Uid(pid);
-    std::string user, x, userUid;
-    std::string line;
+    string uid = LinuxParser::Uid(pid);
+    string user, x, userUid;
+    string line;
 
     try
     {
@@ -437,6 +438,7 @@ string LinuxParser::User(int pid)
                 }
             }
         }
+        filestream.close();
     }
     catch (std::exception &e)
     {
@@ -455,15 +457,15 @@ long LinuxParser::UpTime(int pid )
 {
 
     //vector<long> statsList; --> To ask the mentor why it doesn't work this way
-    vector<std::string> statsList;
-    std::string line;
-    std::string item;
+    vector<string> statsList;
+    string line;
+    string item;
     const long HZ = sysconf(_SC_CLK_TCK);
     long /*item=0,*/ procStartTime = 0, processTime = 0;
 
     try
     {
-        std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatFilename);
+        std::ifstream filestream(kProcDirectory + to_string(pid) + kStatFilename);
         if (filestream.is_open())
         {
             std::getline(filestream, line);
@@ -479,6 +481,7 @@ long LinuxParser::UpTime(int pid )
         procStartTime = std::stol(statsList[21])/HZ;
         //std::cout<<"procStartTime : "<<procStartTime<<"\n";
         processTime =  LinuxParser::UpTime() - procStartTime;
+        filestream.close();
     }
     catch (std::exception &e)
     {

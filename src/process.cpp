@@ -6,9 +6,7 @@
 
 #include "process.h"
 
-using std::string;
-using std::to_string;
-using std::vector;
+using namespace std;
 
 
 /*
@@ -27,6 +25,7 @@ float Process::CpuUtilization()
     long activeJiffies = LinuxParser::ActiveJiffies(pid_);;
     long upTime = LinuxParser::UpTime(pid_);
     return (float)activeJiffies/upTime;
+//    return LinuxParser::CpuUtilization(pid_)/100
 }
 
 /*
@@ -34,7 +33,20 @@ float Process::CpuUtilization()
  */
 string Process::Command()
 {
-    return LinuxParser::Command(pid_);
+    string cmdline = LinuxParser::Command(pid_);
+    string outputCmd;
+
+    // testing if command line contains more than 40 characters
+    if ( cmdline.size() < 40)
+    {
+       outputCmd = cmdline;
+    }
+    else
+    {
+       outputCmd = cmdline.substr(0, 40)+"...";
+
+    }
+    return outputCmd;
 }
 
 /*

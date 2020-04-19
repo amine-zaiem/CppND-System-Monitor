@@ -18,6 +18,7 @@ const std::string kMeminfoFilename{"/meminfo"};
 const std::string kVersionFilename{"/version"};
 const std::string kOSPath{"/etc/os-release"};
 const std::string kPasswordPath{"/etc/passwd"};
+const std::string default_os{"Linux"};
 
 
 //extern std::string exception_text;
@@ -53,6 +54,7 @@ T GetValue( std::string const &filePath, std::string const &token, T& value)
                 }
             }
         }
+        filestream.close();
     }
     catch (std::exception &e)
     {

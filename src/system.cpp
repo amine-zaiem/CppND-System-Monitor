@@ -10,10 +10,7 @@
 #include "linux_parser.h"
 #include "system.h"
 
-using std::set;
-using std::size_t;
-using std::string;
-using std::vector;
+using namespace std;
 
 /*
  * A helper to return the system's CPU
@@ -31,7 +28,7 @@ vector<Process>& System::Processes()
     for ( auto pidItem : LinuxParser::Pids() )
     {
         Process sysProcess(pidItem);
-        processes_.push_back( sysProcess );
+        processes_.emplace_back( sysProcess );
     }
     // Sorting by process utilization
     std::sort(processes_.begin(), processes_.end()/*, Process::operator<*/);
