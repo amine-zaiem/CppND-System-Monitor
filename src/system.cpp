@@ -33,7 +33,8 @@ vector<Process>& System::Processes()
         Process sysProcess(pidItem);
         processes_.push_back( sysProcess );
     }
-    std::sort(processes_.begin(), processes_.end());
+    // Sorting by process utilization
+    std::sort(processes_.begin(), processes_.end()/*, Process::operator<*/);
 
     return processes_;
 }
